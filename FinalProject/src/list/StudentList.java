@@ -1,264 +1,261 @@
-package view;
+package list;
 
-import java.time.Year;
-import java.util.Scanner;
-import list.StudentList;
-import list.CourseList;
-import list.RegisteringList;
+import node.StudentNode;
 import models.Student;
-import models.Course;
-import node.RegisteringNode;
-import utils.FileUtils;
 
-/**
- * Menu quản lý sinh viên hoàn chỉnh theo đặc tả Assignment 1
- */
-public class MenuStudent {
+public class StudentList {
 
-    private static final String STUDENT_FILE = "data/students.txt";
-    private Scanner sc;
-    private StudentList studentList;
+    // fields
+    private StudentNode head;
+    private StudentNode tail;
 
-    // Bổ sung thêm tham chiếu tới CourseList và RegisteringList để làm chức năng 2.6 và 2.8
-    private CourseList courseList;
-    private RegisteringList registeringList;
-
-    // Constructor mặc định hoặc dùng độc lập
-    public MenuStudent() {
-        this(new Scanner(System.in), new StudentList(), null, null);
+    // constructor
+    public StudentList() {
+        head = tail = null;
     }
 
-    // Constructor tích hợp đầy đủ hệ thống
-    public MenuStudent(Scanner sc, StudentList studentList, CourseList courseList, RegisteringList registeringList) {
-        this.sc = sc;
-        this.studentList = studentList;
-        this.courseList = courseList;
-        this.registeringList = registeringList;
+    // check Empty
+    public boolean isEmpty() {
+        return head == null;
     }
 
-    public void run() {
-        int choice;
+    // clear list
+    public void clear() {
+        head = tail = null;
+    }
 
-        do {
-            printStudentMenu();
-            choice = inputChoice();
+    // get Head node (Sử dụng cho các chức năng duyệt từ bên ngoài lớp)
+    public StudentNode getHead() {
+        return head;
+    }
 
-            switch (choice) {
-                case 1:
-                    loadStudent();
-                    break;
-                case 2:
-                    addStudent();
-                    break;
-                case 3:
-                    studentList.display();
-                    break;
-                case 4:
-                    saveStudent();
-                    break;
-                case 5:
-                    searchStudentByCode();
-                    break;
-                case 6:
-                    deleteStudent();
-                    break;
-                case 7:
-                    searchStudentByName();
-                    break;
-                case 8:
-                    searchRegisteredCoursesByScode();
-                    break;
-                case 0:
-                    System.out.println("Exit Student Menu.");
-                    break;
-                default:
-                    System.out.println("Invalid choice.");
+    /**
+     * HÀM BỔ TRỢ ĐẶC BIỆT: Tìm kiếm trả về cả một StudentNode thay vì chỉ lấy
+     * Student info. Hàm này giúp tối ưu hóa, tái sử dụng code cho việc duyệt,
+     * sửa đổi hoặc xóa Node.
+     */
+    private StudentNode findNodeByCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
+        StudentNode p = head;
+        while (p != null) {
+            if (p.info.getScode().equalsIgnoreCase(code.trim())) {
+                return p; // Trả về toàn bộ Node tìm thấy
             }
-        } while (choice != 0);
+            p = p.next;
+        }
+        return null;
     }
 
-    public static void printStudentMenu() {
-        System.out.println("\n===== STUDENT MENU =====");
-        System.out.println("1. Load from file");
-        System.out.println("2. Add student");
-        System.out.println("3. Display");
-        System.out.println("4. Save to file");
-        System.out.println("5. Search by code");
-        System.out.println("6. Delete by code");
-        System.out.println("7. Search by name");
-        System.out.println("8. Search registered courses by scode");
-        System.out.println("0. Exit");
-    }
-
-    private void loadStudent() {
-        FileUtils.loadStudent(studentList, STUDENT_FILE);
-    }
-
-    private void saveStudent() {
-        FileUtils.saveStudent(studentList, STUDENT_FILE);
-    }
-
-    private void addStudent() {
-        String code = inputNonEmptyString("Code: ");
-
-        if (studentList.searchByCode(code) != null) {
-            System.out.println("Duplicated code.");
+    // =========================================================================
+    // MỤC 2.1: Load data from file (Thường được triển khai kết hợp với lớp IO)
+    // =========================================================================
+    // Lưu ý: Khi đọc từng dòng từ file text, bạn phân tách thuộc tính (scode, name, byear) 
+    // và gọi hàm addLastFromFile() dưới đây để thêm thẳng vào danh sách mà không cần validation lại tuổi.
+    public void addLastFromFile(Student x) {
+        if (x == null) {
             return;
         }
-
-        String name = inputNonEmptyString("Name: ");
-        int byear = inputBirthYear("Birth year: ");
-
-        try {
-            Student s = new Student(code, name, byear);
-            studentList.addLast(s);
-            System.out.println("Added.");
-        } catch (IllegalArgumentException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    private void searchStudentByCode() {
-        String code = inputNonEmptyString("Code: ");
-        Student s = studentList.searchByCode(code);
-
-        if (s == null) {
-            System.out.println("Not found.");
+        StudentNode p = new StudentNode(x);
+        if (isEmpty()) {
+            head = tail = p;
         } else {
-            System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
-            System.out.println(s);
+            tail.next = p;
+            tail = p;
         }
     }
 
-    private void searchStudentByName() {
-        String name = inputNonEmptyString("Name: ");
-        boolean found = studentList.displayByName(name);
+    // =========================================================================
+    // MỤC 2.2: Input & add to the end (Có đầy đủ Validation)
+    // =========================================================================
+    public void addLast(Student x) {
+        if (x == null) {
+            throw new IllegalArgumentException("Dữ liệu sinh viên không được null.");
+        }
 
-        if (!found) {
-            System.out.println("Not found.");
+        // KIỂM TRA ĐIỀU KIỆN 1: Mã sinh viên (scode) phải là duy nhất (Unique)
+        if (findNodeByCode(x.getScode()) != null) {
+            throw new IllegalArgumentException("Lỗi: Mã sinh viên (scode) đã tồn tại trong hệ thống!");
+        }
+
+        // KIỂM TRA ĐIỀU KIỆN 2: Tuổi sinh viên phải >= 18 tuổi tại năm hiện tại (2026)
+        int currentYear = 2026;
+        if (currentYear - x.getByear() < 18) {
+            throw new IllegalArgumentException("Lỗi: Sinh viên phải từ 18 tuổi trở lên (Năm sinh phải <= " + (currentYear - 18) + ").");
+        }
+
+        StudentNode p = new StudentNode(x);
+        if (isEmpty()) {
+            head = tail = p;
+            return;
+        }
+
+        tail.next = p;
+        tail = p;
+    }
+
+    // =========================================================================
+    // MỤC 2.3: Display data
+    // =========================================================================
+    public void display() {
+        if (isEmpty()) {
+            System.out.println("Danh sách sinh viên rỗng.");
+            return;
+        }
+
+        StudentNode p = head;
+        System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+        while (p != null) {
+            System.out.println(p.info); // Đảm bảo lớp Student đã override hàm toString() đúng định dạng
+            p = p.next;
         }
     }
 
-    /**
-     * Chức năng 2.6: Xóa sinh viên theo mã (scode) Đòi hỏi xóa các bản ghi liên
-     * quan trong RegisteringList trước
-     */
-    private void deleteStudent() {
-        String code = inputNonEmptyString("Code: ");
-        Student s = studentList.searchByCode(code);
-
-        if (s == null) {
-            System.out.println("Not found.");
-            return;
-        }
-
-        if (registeringList != null) {
-            registeringList.deleteByScode(code);
-        }
-
-        // TRƯỚC KHI SỬA: boolean deleted = studentList.deleteByCode(code, registeringList);
-        // SAU KHI SỬA: Truyền thêm biến courseList vào cuối cùng như thế này
-        boolean deleted = studentList.deleteByCode(code, registeringList, courseList);
-
-        if (deleted) {
-            System.out.println("Deleted successfully.");
-        } else {
-            System.out.println("Delete failed.");
-        }
+    // =========================================================================
+    // MỤC 2.4: Save student list to file (Thường được triển khai chung với tầng IO)
+    // =========================================================================
+    // =========================================================================
+    // MỤC 2.5: Search by scode
+    // =========================================================================
+    public Student searchByCode(String code) {
+        StudentNode foundNode = findNodeByCode(code);
+        return (foundNode != null) ? foundNode.info : null;
     }
 
-    /**
-     * Chức năng 2.8: Tìm kiếm các khóa học mà sinh viên đã đăng ký bằng scode
-     */
-    private void searchRegisteredCoursesByScode() {
-        String code = inputNonEmptyString("Code: ");
-        Student s = studentList.searchByCode(code);
+    // =========================================================================
+    // MỤC 2.6: Delete by scode (Bắt buộc tích hợp xóa liên kết với RegisteringList)
+    // =========================================================================
+    // Giải thuật bắt buộc: Tìm và xóa tất cả bản ghi đăng ký của sinh viên này trong RegisteringList trước,
+    // sau đó mới tiến hành cắt Node sinh viên ra khỏi StudentList hiện tại để tránh lỗi mồ côi dữ liệu.
+    public boolean deleteByCode(String code, RegisteringList registeringList, CourseList courseList) {
+    if (code == null || code.trim().isEmpty() || isEmpty()) {
+        return false;
+    }
 
-        if (s == null) {
-            System.out.println("Student not found.");
+    String cleanCode = code.trim();
+
+    if (findNodeByCode(cleanCode) == null) {
+        return false;
+    }
+
+    // === ĐOẠN THÊM MỚI ĐỂ GIẢM REGISTERED ===
+    // Duyệt qua danh sách đăng ký, tìm những môn mà thằng sinh viên này từng đăng ký để trừ bớt đi
+    node.RegisteringNode pReg = registeringList.getHead();
+    while (pReg != null) {
+        if (pReg.info.getScode().equalsIgnoreCase(cleanCode)) {
+            String targetCcode = pReg.info.getCcode();
+            
+            // Tìm môn học tương ứng trong CourseList
+            models.Course course = courseList.searchCourseByCcode(targetCcode);
+            if (course != null) {
+                course.setRegistered(course.getRegistered() - 1); // Giảm registered đi 1 người
+                // Không cần tăng seats vì seats ở đây đề bài định nghĩa là tổng số chỗ ngồi cố định của phòng học (seats >= registered)
+            }
+        }
+        pReg = pReg.next;
+    }
+    // =======================================
+
+    // 2. Sau khi hoàn trả số lượng xong mới xóa sạch bản ghi đăng ký của nó
+    registeringList.deleteByScode(cleanCode);
+
+    // 3. Logic cắt Node sinh viên ra khỏi StudentList (Giữ nguyên toàn bộ phần bên dưới của bạn)
+    if (head.info.getScode().equalsIgnoreCase(cleanCode)) {
+        head = head.next;
+        if (head == null) {
+            tail = null;
+        }
+        return true;
+    }
+
+        // Trường hợp 2: Sinh viên cần xóa nằm ở GIỮA hoặc CUỐI danh sách
+        StudentNode prev = head;
+        StudentNode cur = head.next;
+
+        while (cur != null) {
+            if (cur.info.getScode().equalsIgnoreCase(cleanCode)) {
+                prev.next = cur.next;
+
+                // Nếu Node xóa chính là Node cuối cùng (tail), cập nhật lại tail về Node phía trước
+                if (cur == tail) {
+                    tail = prev;
+                }
+                return true;
+            }
+            prev = cur;
+            cur = cur.next;
+        }
+        return false;
+    }
+
+    // =========================================================================
+    // MỤC 2.7: Search by name (student name) - Tìm kiếm tương đối chứa chuỗi
+    // =========================================================================
+    public boolean displayByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+
+        boolean found = false;
+        StudentNode p = head;
+        String searchKey = name.trim().toLowerCase();
+
+        while (p != null) {
+            // Sử dụng .contains() giúp tìm kiếm linh hoạt (Ví dụ: nhập "anh" sẽ ra cả "Tuấn Anh", "Trọng Anh")
+            if (p.info.getName().toLowerCase().contains(searchKey)) {
+                if (!found) {
+                    System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+                }
+                System.out.println(p.info);
+                found = true;
+            }
+            p = p.next;
+        }
+        return found;
+    }
+
+    // =========================================================================
+    // MỤC 2.8: Search registered courses by scode
+    // =========================================================================
+    // Logic yêu cầu: Tìm kiếm thông tin sinh viên theo mã, nếu tìm thấy thì in thông tin cá nhân ra,
+    // sau đó phải liên kết sang danh sách đăng ký (RegisteringList) hiển thị tất cả môn học sinh viên đó chọn.
+    public void searchRegisteredCourses(String code, RegisteringList registeringList) {
+        Student student = searchByCode(code);
+        if (student == null) {
+            System.out.println("Không tìm thấy dữ liệu sinh viên có mã: " + code);
             return;
         }
 
-        System.out.println("Student info: " + s);
+        // In thông tin cá nhân của sinh viên được tìm thấy
+        System.out.println("\n--- THÔNG TIN SINH VIÊN ---");
+        System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+        System.out.println(student);
 
-        if (registeringList == null || courseList == null) {
-            System.out.println("Error: System not fully integrated (Missing CourseList or RegisteringList).");
-            return;
-        }
+        System.out.println("--- CÁC MÔN HỌC ĐÃ ĐĂNG KÝ ---");
 
-        System.out.println("\n--- Registered Courses List ---");
-        System.out.printf("%-10s | %-10s | %-20s | %-8s | %-8s | %-6s | %-10s | %-8s\n",
-                "Ccode", "Scode", "Sname", "Semester", "Year", "Seats", "Regist", "Price");
-
+        // 2. Lấy Node đầu tiên của RegisteringList để tự duyệt bằng vòng lặp
+        // (Đảm bảo bên lớp RegisteringList của bạn có hàm getHead() trả về Node đầu tiên)
+        node.RegisteringNode pReg = registeringList.getHead();
         boolean hasRegistration = false;
-        RegisteringNode current = registeringList.getHead(); // Giả định RegisteringList có getHead()
 
-        while (current != null) {
-            // Nếu tìm thấy bản ghi đăng ký trùng mã sinh viên (scode)
-            if (current.info.getScode().equalsIgnoreCase(code)) {
-                String targetCcode = current.info.getCcode();
-
-                // Tìm kiếm thông tin môn học/lớp học tương ứng trong CourseList
-                // Giả định CourseList có hàm searchByCcode hoặc findNode trả về CourseNode/Course
-                Course course = courseList.searchCourseByCcode(targetCcode);
-
-                if (course != null) {
-                    System.out.println(course);
-                    hasRegistration = true;
-                }
+        while (pReg != null) {
+            // Kiểm tra xem mã sinh viên trong bản ghi đăng ký có trùng với code cần tìm không
+            if (pReg.info.getScode().equalsIgnoreCase(code.trim())) {
+                System.out.printf("- Mã lớp: %-8s | Ngày ĐK: %-10s | Điểm: %-4.1f | Trạng thái: %s\n",
+                        pReg.info.getCcode(),
+                        pReg.info.getBdate(),
+                        pReg.info.getMark(),
+                        (pReg.info.getState() == 1 ? "Passed" : "Failed")
+                );
+                hasRegistration = true;
             }
-            current = current.next;
+            pReg = pReg.next; // Chuyển sang node đăng ký tiếp theo
         }
 
+        // 3. Nếu duyệt từ đầu đến cuối danh sách mà không có bản ghi nào trùng scode
         if (!hasRegistration) {
-            System.out.println("This student hasn't registered for any courses yet.");
-        }
-    }
-
-    private int inputChoice() {
-        while (true) {
-            try {
-                String value = inputNonEmptyString("Your choice: ");
-                int choice = Integer.parseInt(value);
-                if (choice >= 0 && choice <= 8) {
-                    return choice;
-                }
-                System.out.println("Choice must be from 0 to 8.");
-            } catch (NumberFormatException e) {
-                System.out.println("Choice must be an integer.");
-            }
-        }
-    }
-
-    private String inputNonEmptyString(String message) {
-        while (true) {
-            System.out.print(message);
-            String value = sc.nextLine().trim();
-
-            if (!value.isEmpty()) {
-                return value;
-            }
-
-            System.out.println("Cannot be empty.");
-        }
-    }
-
-    private int inputBirthYear(String message) {
-        int currentYear = Year.now().getValue();
-
-        while (true) {
-            try {
-                System.out.print(message);
-                int year = Integer.parseInt(sc.nextLine().trim());
-
-                if (currentYear - year >= 18) {
-                    return year;
-                }
-
-                System.out.println("Student must be at least 18 years old.");
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number.");
-            }
+            System.out.println("Sinh viên này hiện chưa đăng ký lớp môn học nào.");
         }
     }
 }
