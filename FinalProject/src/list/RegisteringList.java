@@ -1,315 +1,261 @@
 package list;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.util.Scanner;
-import models.Registering;
-import node.RegisteringNode;
+import node.StudentNode;
+import models.Student;
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-/**
- *
- * @author admin
- */
-public class RegisteringList {
+public class StudentList {
 
-    RegisteringNode head;
+    // fields
+    private StudentNode head;
+    private StudentNode tail;
 
-    public RegisteringList() {
-        head = null;
+    // constructor
+    public StudentList() {
+        head = tail = null;
     }
 
+    // check Empty
     public boolean isEmpty() {
         return head == null;
     }
 
+    // clear list
     public void clear() {
-        head = null;
+        head = tail = null;
     }
 
-    public void addFirst(Registering x) {
-        if (x == null) {
-            throw new IllegalArgumentException("Register must not null");
-        }
-        if (isRegistered(x.getCcode(), x.getScode())) {
-            throw new IllegalArgumentException("Ccode or scode already exist");
-        }
-        RegisteringNode newNode = new RegisteringNode(x);
-        newNode.next = head;
-        head = newNode;
+    // get Head node (Sử dụng cho các chức năng duyệt từ bên ngoài lớp)
+    public StudentNode getHead() {
+        return head;
     }
 
-    public void display() {
-        if (isEmpty()) {
-            System.out.println("Registering list is empty.");
-            return;
+    /**
+     * HÀM BỔ TRỢ ĐẶC BIỆT: Tìm kiếm trả về cả một StudentNode thay vì chỉ lấy
+     * Student info. Hàm này giúp tối ưu hóa, tái sử dụng code cho việc duyệt,
+     * sửa đổi hoặc xóa Node.
+     */
+    private StudentNode findNodeByCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return null;
         }
-
-        System.out.printf("%-10s %-10s %-12s %-6s %-5s\n",
-                "CCode", "SCode", "BDate", "Mark", "State");
-
-        RegisteringNode p = head;
+        StudentNode p = head;
         while (p != null) {
-            System.out.println(p.info);
-            p = p.next;
-        }
-    }
-
-    public Registering search(String ccode, String scode) {
-        RegisteringNode p = head;
-        if (ccode == null || ccode.trim().isEmpty() || scode == null || scode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ccode or scode is null");
-        }
-        while (p != null) {
-            if (p.info.getCcode().equalsIgnoreCase(ccode)
-                    && p.info.getScode().equalsIgnoreCase(scode)) {
-                return p.info;
+            if (p.info.getScode().equalsIgnoreCase(code.trim())) {
+                return p; // Trả về toàn bộ Node tìm thấy
             }
             p = p.next;
         }
-
         return null;
     }
 
-    public boolean isRegistered(String ccode, String scode) {
-        return search(ccode, scode) != null;
+    // =========================================================================
+    // MỤC 2.1: Load data from file (Thường được triển khai kết hợp với lớp IO)
+    // =========================================================================
+    // Lưu ý: Khi đọc từng dòng từ file text, bạn phân tách thuộc tính (scode, name, byear) 
+    // và gọi hàm addLastFromFile() dưới đây để thêm thẳng vào danh sách mà không cần validation lại tuổi.
+    public void addLastFromFile(Student x) {
+        if (x == null) {
+            return;
+        }
+        StudentNode p = new StudentNode(x);
+        if (isEmpty()) {
+            head = tail = p;
+        } else {
+            tail.next = p;
+            tail = p;
+        }
     }
 
-    public boolean updateMark(String ccode, String scode, double newMark) {
-        if (ccode == null || ccode.trim().isEmpty() || scode == null || scode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ccode or scode is null");
-        }
-        if (newMark < 0 || newMark > 10) {
-            System.out.println("Mark must be from 0 to 10.");
-            return false;
-        }
-
-        Registering r = search(ccode, scode);
-
-        if (r == null) {
-            System.out.println("Registering not found.");
-            return false;
+    // =========================================================================
+    // MỤC 2.2: Input & add to the end (Có đầy đủ Validation)
+    // =========================================================================
+    public void addLast(Student x) {
+        if (x == null) {
+            throw new IllegalArgumentException("Dữ liệu sinh viên không được null.");
         }
 
-        r.setMark(newMark);
-        System.out.println("Mark updated successfully.");
+        // KIỂM TRA ĐIỀU KIỆN 1: Mã sinh viên (scode) phải là duy nhất (Unique)
+        if (findNodeByCode(x.getScode()) != null) {
+            throw new IllegalArgumentException("Lỗi: Mã sinh viên (scode) đã tồn tại trong hệ thống!");
+        }
+
+        // KIỂM TRA ĐIỀU KIỆN 2: Tuổi sinh viên phải >= 18 tuổi tại năm hiện tại (2026)
+        int currentYear = 2026;
+        if (currentYear - x.getByear() < 18) {
+            throw new IllegalArgumentException("Lỗi: Sinh viên phải từ 18 tuổi trở lên (Năm sinh phải <= " + (currentYear - 18) + ").");
+        }
+
+        StudentNode p = new StudentNode(x);
+        if (isEmpty()) {
+            head = tail = p;
+            return;
+        }
+
+        tail.next = p;
+        tail = p;
+    }
+
+    // =========================================================================
+    // MỤC 2.3: Display data
+    // =========================================================================
+    public void display() {
+        if (isEmpty()) {
+            System.out.println("Danh sách sinh viên rỗng.");
+            return;
+        }
+
+        StudentNode p = head;
+        System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+        while (p != null) {
+            System.out.println(p.info); // Đảm bảo lớp Student đã override hàm toString() đúng định dạng
+            p = p.next;
+        }
+    }
+
+    // =========================================================================
+    // MỤC 2.4: Save student list to file (Thường được triển khai chung với tầng IO)
+    // =========================================================================
+    // =========================================================================
+    // MỤC 2.5: Search by scode
+    // =========================================================================
+    public Student searchByCode(String code) {
+        StudentNode foundNode = findNodeByCode(code);
+        return (foundNode != null) ? foundNode.info : null;
+    }
+
+    // =========================================================================
+    // MỤC 2.6: Delete by scode (Bắt buộc tích hợp xóa liên kết với RegisteringList)
+    // =========================================================================
+    // Giải thuật bắt buộc: Tìm và xóa tất cả bản ghi đăng ký của sinh viên này trong RegisteringList trước,
+    // sau đó mới tiến hành cắt Node sinh viên ra khỏi StudentList hiện tại để tránh lỗi mồ côi dữ liệu.
+    public boolean deleteByCode(String code, RegisteringList registeringList, CourseList courseList) {
+    if (code == null || code.trim().isEmpty() || isEmpty()) {
+        return false;
+    }
+
+    String cleanCode = code.trim();
+
+    if (findNodeByCode(cleanCode) == null) {
+        return false;
+    }
+
+    // === ĐOẠN THÊM MỚI ĐỂ GIẢM REGISTERED ===
+    // Duyệt qua danh sách đăng ký, tìm những môn mà thằng sinh viên này từng đăng ký để trừ bớt đi
+    node.RegisteringNode pReg = registeringList.getHead();
+    while (pReg != null) {
+        if (pReg.info.getScode().equalsIgnoreCase(cleanCode)) {
+            String targetCcode = pReg.info.getCcode();
+            
+            // Tìm môn học tương ứng trong CourseList
+            models.Course course = courseList.searchCourseByCcode(targetCcode);
+            if (course != null) {
+                course.setRegistered(course.getRegistered() - 1); // Giảm registered đi 1 người
+                // Không cần tăng seats vì seats ở đây đề bài định nghĩa là tổng số chỗ ngồi cố định của phòng học (seats >= registered)
+            }
+        }
+        pReg = pReg.next;
+    }
+    // =======================================
+
+    // 2. Sau khi hoàn trả số lượng xong mới xóa sạch bản ghi đăng ký của nó
+    registeringList.deleteByScode(cleanCode);
+
+    // 3. Logic cắt Node sinh viên ra khỏi StudentList (Giữ nguyên toàn bộ phần bên dưới của bạn)
+    if (head.info.getScode().equalsIgnoreCase(cleanCode)) {
+        head = head.next;
+        if (head == null) {
+            tail = null;
+        }
         return true;
     }
 
-    public void sortByCcodeScode() {
-        if (head == null || head.next == null) {
+        // Trường hợp 2: Sinh viên cần xóa nằm ở GIỮA hoặc CUỐI danh sách
+        StudentNode prev = head;
+        StudentNode cur = head.next;
+
+        while (cur != null) {
+            if (cur.info.getScode().equalsIgnoreCase(cleanCode)) {
+                prev.next = cur.next;
+
+                // Nếu Node xóa chính là Node cuối cùng (tail), cập nhật lại tail về Node phía trước
+                if (cur == tail) {
+                    tail = prev;
+                }
+                return true;
+            }
+            prev = cur;
+            cur = cur.next;
+        }
+        return false;
+    }
+
+    // =========================================================================
+    // MỤC 2.7: Search by name (student name) - Tìm kiếm tương đối chứa chuỗi
+    // =========================================================================
+    public boolean displayByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+
+        boolean found = false;
+        StudentNode p = head;
+        String searchKey = name.trim().toLowerCase();
+
+        while (p != null) {
+            // Sử dụng .contains() giúp tìm kiếm linh hoạt (Ví dụ: nhập "anh" sẽ ra cả "Tuấn Anh", "Trọng Anh")
+            if (p.info.getName().toLowerCase().contains(searchKey)) {
+                if (!found) {
+                    System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+                }
+                System.out.println(p.info);
+                found = true;
+            }
+            p = p.next;
+        }
+        return found;
+    }
+
+    // =========================================================================
+    // MỤC 2.8: Search registered courses by scode
+    // =========================================================================
+    // Logic yêu cầu: Tìm kiếm thông tin sinh viên theo mã, nếu tìm thấy thì in thông tin cá nhân ra,
+    // sau đó phải liên kết sang danh sách đăng ký (RegisteringList) hiển thị tất cả môn học sinh viên đó chọn.
+    public void searchRegisteredCourses(String code, RegisteringList registeringList) {
+        Student student = searchByCode(code);
+        if (student == null) {
+            System.out.println("Không tìm thấy dữ liệu sinh viên có mã: " + code);
             return;
         }
 
-        for (RegisteringNode i = head; i != null; i = i.next) {
-            for (RegisteringNode j = i.next; j != null; j = j.next) {
-                if (compareRegistering(i.info, j.info) > 0) {
-                    Registering temp = i.info;
-                    i.info = j.info;
-                    j.info = temp;
-                }
+        // In thông tin cá nhân của sinh viên được tìm thấy
+        System.out.println("\n--- THÔNG TIN SINH VIÊN ---");
+        System.out.printf("%-10s %-25s %-6s\n", "Scode", "Name", "Byear");
+        System.out.println(student);
+
+        System.out.println("--- CÁC MÔN HỌC ĐÃ ĐĂNG KÝ ---");
+
+        // 2. Lấy Node đầu tiên của RegisteringList để tự duyệt bằng vòng lặp
+        // (Đảm bảo bên lớp RegisteringList của bạn có hàm getHead() trả về Node đầu tiên)
+        node.RegisteringNode pReg = registeringList.getHead();
+        boolean hasRegistration = false;
+
+        while (pReg != null) {
+            // Kiểm tra xem mã sinh viên trong bản ghi đăng ký có trùng với code cần tìm không
+            if (pReg.info.getScode().equalsIgnoreCase(code.trim())) {
+                System.out.printf("- Mã lớp: %-8s | Ngày ĐK: %-10s | Điểm: %-4.1f | Trạng thái: %s\n",
+                        pReg.info.getCcode(),
+                        pReg.info.getBdate(),
+                        pReg.info.getMark(),
+                        (pReg.info.getState() == 1 ? "Passed" : "Failed")
+                );
+                hasRegistration = true;
             }
-        }
-    }
-
-    private int compareRegistering(Registering a, Registering b) {
-        if (a == null || b == null) {
-            throw new IllegalArgumentException("Register is null");
-        }
-        int ccodeCompare = a.getCcode().compareToIgnoreCase(b.getCcode());
-
-        if (ccodeCompare != 0) {
-            return ccodeCompare;
+            pReg = pReg.next; // Chuyển sang node đăng ký tiếp theo
         }
 
-        return a.getScode().compareToIgnoreCase(b.getScode());
-    }
-
-    public void deleteByCcode(String ccode) {
-        if (ccode == null || ccode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ccode is null");
+        // 3. Nếu duyệt từ đầu đến cuối danh sách mà không có bản ghi nào trùng scode
+        if (!hasRegistration) {
+            System.out.println("Sinh viên này hiện chưa đăng ký lớp môn học nào.");
         }
-        while (head != null && head.info.getCcode().equalsIgnoreCase(ccode)) {
-            head = head.next;
-        }
-
-        RegisteringNode p = head;
-
-        while (p != null && p.next != null) {
-            if (p.next.info.getCcode().equalsIgnoreCase(ccode)) {
-                p.next = p.next.next;
-            } else {
-                p = p.next;
-            }
-        }
-    }
-
-    public void deleteByScode(String scode) {
-        if (scode == null || scode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Scode is null");
-        }
-        while (head != null && head.info.getScode().equalsIgnoreCase(scode)) {
-            head = head.next;
-        }
-
-        RegisteringNode p = head;
-
-        while (p != null && p.next != null) {
-            if (p.next.info.getScode().equalsIgnoreCase(scode)) {
-                p.next = p.next.next;
-            } else {
-                p = p.next;
-            }
-        }
-    }
-
-    public void loadFromFile(String filename, CourseList courseList, StudentList studentList) {
-        if (filename == null || filename.trim().isEmpty()) {
-            System.out.println("Filename is empty.");
-            return;
-        }
-
-        File f = new File(filename);
-
-        if (!f.exists()) {
-            System.out.println("File not found: " + filename);
-            return;
-        }
-
-        clear();
-
-        try {
-            Scanner sc = new Scanner(f);
-            int lineNumber = 0;
-
-            while (sc.hasNextLine()) {
-                lineNumber++;
-                String line = sc.nextLine().trim();
-
-                if (line.isEmpty()) {
-                    continue;
-                }
-
-                String[] parts = line.split("\\|");
-
-                if (parts.length != 5) {
-                    System.out.println("Line " + lineNumber + " invalid: must have 5 fields.");
-                    continue;
-                }
-
-                String ccode = parts[0].trim();
-                String scode = parts[1].trim();
-                String bdate = parts[2].trim();
-                String markText = parts[3].trim();
-                String stateText = parts[4].trim();
-                if (ccode.isEmpty()) {
-                    System.out.println("Line " + lineNumber + " invalid: ccode is empty.");
-                    continue;
-                }
-
-                if (scode.isEmpty()) {
-                    System.out.println("Line " + lineNumber + " invalid: scode is empty.");
-                    continue;
-                }
-
-                if (bdate.isEmpty()) {
-                    System.out.println("Line " + lineNumber + " invalid: bdate is empty.");
-                    continue;
-                }
-                if (courseList == null || studentList == null) {
-                    System.out.println("Course list and student list must be loaded first.");
-                    return;
-                }
-                if (courseList.searchCourseByCcode(ccode) == null) {
-                    System.out.println("Line " + lineNumber + " invalid: course does not exist.");
-                    continue;
-                }
-
-                if (studentList.searchByCode(scode) == null) {
-                    System.out.println("Line " + lineNumber + " invalid: student does not exist.");
-                    continue;
-                }
-
-                double mark;
-                try {
-                    mark = Double.parseDouble(markText);
-                } catch (NumberFormatException e) {
-                    System.out.println("Line " + lineNumber + " invalid: mark is not a number.");
-                    continue;
-                }
-
-                if (mark < 0 || mark > 10) {
-                    System.out.println("Line " + lineNumber + " invalid: mark must be from 0 to 10.");
-                    continue;
-                }
-
-                int state;
-                try {
-                    state = Integer.parseInt(stateText);
-                } catch (NumberFormatException e) {
-                    System.out.println("Line " + lineNumber + " invalid: state is not an integer.");
-                    continue;
-                }
-
-                if (state != 0 && state != 1) {
-                    System.out.println("Line " + lineNumber + " invalid: state must be 0 or 1.");
-                    continue;
-                }
-
-                int expectedState = mark >= 5 ? 1 : 0;
-                if (state != expectedState) {
-                    System.out.println("Line " + lineNumber + " invalid: state does not match mark.");
-                    continue;
-                }
-
-                if (isRegistered(ccode, scode)) {
-                    System.out.println("Line " + lineNumber + " invalid: duplicated registering.");
-                    continue;
-                }
-
-                try {
-                    Registering r = new Registering(ccode, scode, bdate, mark);
-                    addFirst(r);
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Line " + lineNumber + " invalid: " + e.getMessage());
-                }
-            }
-
-            sc.close();
-            System.out.println("Load registering list successfully.");
-
-        } catch (FileNotFoundException e) {
-            System.out.println("Error loading file: " + e.getMessage());
-        }
-    }
-
-    public void saveToFile(String filename) {
-        if (filename == null || filename.trim().isEmpty()) {
-            throw new IllegalArgumentException("File name null or is empty");
-        }
-        try {
-            PrintWriter pw = new PrintWriter(filename);
-
-            RegisteringNode p = head;
-
-            while (p != null) {
-                pw.println(p.info.toFileLine());
-                p = p.next;
-            }
-
-            pw.close();
-            System.out.println("Save registering list successfully.");
-
-        } catch (FileNotFoundException e) {
-            System.out.println("Error saving file: " + e.getMessage());
-        }
-    }
-
-    public RegisteringNode getHead() {
-        return head;
     }
 }
