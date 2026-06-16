@@ -1,0 +1,4 @@
+C01,PRF192,Programming Fundamentals,SU2026,2026,3,1,1500
+C02,CSD201,Data Structures,SU2026,2026,2,0,1800
+C03,DBI202,Database Systems,FA2026,2026,1,1,1700
+C04,PRO192,Object-Oriented Programming,FA2026,2026,4,2,1600

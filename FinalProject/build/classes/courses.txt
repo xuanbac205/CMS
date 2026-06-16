@@ -1,0 +1,5 @@
+C001|PRJ301|Java Web Application|Summer|2026|30|5|1500000
+C002|DBI202|Database Systems|Summer|2026|25|3|1200000
+C003|MAD101|Mobile Application|Fall|2026|40|10|1800000
+C004|JPD113|Elementary Japanese|Fall|2026|35|0|1000000
+C005|DSA101|Data Structures and Algorithms|Spring|2026|50|15|2000000

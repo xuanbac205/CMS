@@ -152,16 +152,36 @@ public class MenuStudent {
             return;
         }
 
-        if (registeringList != null) {
+//        // 1. Tiến hành xóa tất cả bản ghi liên quan trong RegisteringList trước (nếu có tích hợp)
+//        if (registeringList != null) {
+//            // Gọi hàm xóa tất cả đăng ký của sinh viên này trong RegisteringList
+//            // Giả định RegisteringList có hàm deleteByScode(String scode)
+//            registeringList.deleteByScode(code);
+//        } else {
+//            System.out.println("[Warning] RegisteringList is not integrated. Deleting student only.");
+//        }
+        //giam registed trong course khi xoa
+        if (registeringList != null && courseList != null) {
+            RegisteringNode p = registeringList.getHead();
+
+            while (p != null) {
+                if (p.info.getScode().equalsIgnoreCase(code)) {
+                    Course course = courseList.searchCourseByCcode(p.info.getCcode());
+
+                    if (course != null && course.getRegistered() > 0) {
+                        course.setRegistered(course.getRegistered() - 1);
+                    }
+                }
+
+                p = p.next;
+            }
+
             registeringList.deleteByScode(code);
         }
-
-        // TRƯỚC KHI SỬA: boolean deleted = studentList.deleteByCode(code, registeringList);
-        // SAU KHI SỬA: Truyền thêm biến courseList vào cuối cùng như thế này
-        boolean deleted = studentList.deleteByCode(code, registeringList, courseList);
-
+        // 2. Xóa sinh viên khỏi danh sách StudentList
+        boolean deleted = studentList.deleteByCode(code);
         if (deleted) {
-            System.out.println("Deleted successfully.");
+            System.out.println("Deleted successfully (and cleared related registrations).");
         } else {
             System.out.println("Delete failed.");
         }

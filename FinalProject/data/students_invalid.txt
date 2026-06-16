@@ -1,0 +1,6 @@
+S01|Nguyen Van An|2000
+S01|Duplicate Student|2001
+S06||2000
+S07|Too Young|2012
+S08|Bad Year|abc
+S09|MissingField

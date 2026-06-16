@@ -7,12 +7,17 @@ import java.util.Scanner;
 import models.Registering;
 import node.RegisteringNode;
 
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 /**
- * Lớp quản lý danh sách đăng ký học phần sử dụng Linked List
+ *
+ * @author admin
  */
 public class RegisteringList {
 
-    private RegisteringNode head;
+    RegisteringNode head;
 
     public RegisteringList() {
         head = null;
@@ -143,27 +148,21 @@ public class RegisteringList {
         }
     }
 
-    /**
-     * Yêu cầu 2.6: Tự động xóa sạch tất cả các bản ghi đăng ký liên quan của sinh viên theo scode
-     * Đã sửa lỗi thuật toán chạy vòng lặp để tránh lỗi bỏ sót node kế tiếp.
-     */
     public void deleteByScode(String scode) {
-        if (head == null || scode == null || scode.trim().isEmpty()) {
-            return;
+        if (scode == null || scode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Scode is null");
         }
-
-        // 1. Xóa các node trùng mã scode nằm liên tiếp ngay đầu danh sách
-        while (head != null && head.info.getScode().equalsIgnoreCase(scode.trim())) {
+        while (head != null && head.info.getScode().equalsIgnoreCase(scode)) {
             head = head.next;
         }
 
-        // 2. Xóa các node trùng mã scode nằm ở giữa hoặc cuối danh sách
         RegisteringNode p = head;
+
         while (p != null && p.next != null) {
-            if (p.next.info.getScode().equalsIgnoreCase(scode.trim())) {
-                p.next = p.next.next; // Bỏ qua node trùng, liên kết trực tiếp tới node tiếp theo
+            if (p.next.info.getScode().equalsIgnoreCase(scode)) {
+                p.next = p.next.next;
             } else {
-                p = p.next; // Chỉ dịch chuyển con trỏ lên khi node tiếp theo không bị xóa
+                p = p.next;
             }
         }
     }
@@ -207,13 +206,24 @@ public class RegisteringList {
                 String bdate = parts[2].trim();
                 String markText = parts[3].trim();
                 String stateText = parts[4].trim();
-                
-                if (courseList == null || studentList == null) {
-                    System.out.println("Course list and student list must be loaded first.");
-                    sc.close();
-                    return;
+                if (ccode.isEmpty()) {
+                    System.out.println("Line " + lineNumber + " invalid: ccode is empty.");
+                    continue;
                 }
 
+                if (scode.isEmpty()) {
+                    System.out.println("Line " + lineNumber + " invalid: scode is empty.");
+                    continue;
+                }
+
+                if (bdate.isEmpty()) {
+                    System.out.println("Line " + lineNumber + " invalid: bdate is empty.");
+                    continue;
+                }
+                if (courseList == null || studentList == null) {
+                    System.out.println("Course list and student list must be loaded first.");
+                    return;
+                }
                 if (courseList.searchCourseByCcode(ccode) == null) {
                     System.out.println("Line " + lineNumber + " invalid: course does not exist.");
                     continue;
@@ -221,11 +231,6 @@ public class RegisteringList {
 
                 if (studentList.searchByCode(scode) == null) {
                     System.out.println("Line " + lineNumber + " invalid: student does not exist.");
-                    continue;
-                }
-                
-                if (ccode.isEmpty() || scode.isEmpty() || bdate.isEmpty()) {
-                    System.out.println("Line " + lineNumber + " invalid: Missing required fields.");
                     continue;
                 }
 
@@ -304,7 +309,6 @@ public class RegisteringList {
         }
     }
 
-    // Hàm lấy Node đầu tiên phục vụ cho việc duyệt danh sách từ bên ngoài lớp (ví dụ: MenuStudent)
     public RegisteringNode getHead() {
         return head;
     }

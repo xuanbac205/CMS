@@ -1,0 +1,6 @@
+S01|Nguyen Van An|2000
+S02|Tran Thi Binh|1999
+S03|Le Minh Chau|2001
+S04|Pham Quoc Dung|1998
+S05|Hoang Thu Ha|2002
+HE194590|Tri?u Xu�n B?c|2005
